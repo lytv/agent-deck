@@ -93,6 +93,12 @@ func (d *NewDialog) SetSize(width, height int) {
 	d.height = height
 }
 
+// SetPathSuggestions sets the available path suggestions for autocomplete
+func (d *NewDialog) SetPathSuggestions(paths []string) {
+	d.pathSuggestions = paths
+	d.pathInput.SetSuggestions(paths)
+}
+
 // Show makes the dialog visible (uses default group)
 func (d *NewDialog) Show() {
 	d.ShowInGroup("default", "default")
