@@ -429,9 +429,10 @@ func handleAdd(profile string, args []string) {
 		sessionGroup = parentInstance.GroupPath
 	}
 
-	// Check for duplicate (same path)
+	// Check for duplicate (same path AND same title)
+	// Allow multiple sessions with same path but different titles
 	for _, inst := range instances {
-		if inst.ProjectPath == path {
+		if inst.ProjectPath == path && inst.Title == sessionTitle {
 			fmt.Printf("Session already exists: %s (%s)\n", inst.Title, inst.ID)
 			os.Exit(0)
 		}
@@ -494,6 +495,13 @@ func handleAdd(profile string, args []string) {
 		}
 	}
 
+	// Auto-start tmux session if command is specified
+	if sessionCommand != "" {
+		if err := newInstance.Start(); err != nil {
+			fmt.Printf("Warning: session created but failed to start: %v\n", err)
+		}
+	}
+
 	fmt.Printf("✓ Added session: %s\n", sessionTitle)
 	fmt.Printf("  Profile: %s\n", storage.Profile())
 	fmt.Printf("  Path:    %s\n", path)
@@ -501,6 +509,7 @@ func handleAdd(profile string, args []string) {
 	fmt.Printf("  ID:      %s\n", newInstance.ID)
 	if sessionCommand != "" {
 		fmt.Printf("  Cmd:     %s\n", sessionCommand)
+		fmt.Printf("  Status:  started\n")
 	}
 	if len(mcpFlags) > 0 {
 		fmt.Printf("  MCPs:    %s\n", strings.Join(mcpFlags, ", "))
@@ -1201,22 +1210,47 @@ func truncate(s string, max int) string {
 }
 
 // detectTool determines the tool type from command
+// Also checks if command is a script that wraps claude/gemini
 func detectTool(cmd string) string {
-	cmd = strings.ToLower(cmd)
+	cmdLower := strings.ToLower(cmd)
 	switch {
-	case strings.Contains(cmd, "claude"):
+	case strings.Contains(cmdLower, "claude"):
 		return "claude"
-	case strings.Contains(cmd, "opencode") || strings.Contains(cmd, "open-code"):
+	case strings.Contains(cmdLower, "opencode") || strings.Contains(cmdLower, "open-code"):
 		return "opencode"
-	case strings.Contains(cmd, "gemini"):
+	case strings.Contains(cmdLower, "gemini"):
 		return "gemini"
-	case strings.Contains(cmd, "codex"):
+	case strings.Contains(cmdLower, "codex"):
 		return "codex"
-	case strings.Contains(cmd, "cursor"):
+	case strings.Contains(cmdLower, "cursor"):
 		return "cursor"
-	default:
-		return "shell"
+	case strings.Contains(cmdLower, "ccs"):
+		return "claude" // ccs is Claude Code Switch
 	}
+
+	// Check if command is a script that wraps claude/gemini
+	// Look in common script locations
+	scriptPaths := []string{cmd}
+	if homeDir, err := os.UserHomeDir(); err == nil {
+		scriptPaths = append(scriptPaths,
+			filepath.Join(homeDir, ".local", "bin", cmd),
+			filepath.Join("/usr/local/bin", cmd),
+		)
+	}
+
+	for _, scriptPath := range scriptPaths {
+		if content, err := os.ReadFile(scriptPath); err == nil {
+			contentLower := strings.ToLower(string(content))
+			if strings.Contains(contentLower, "claude") || strings.Contains(contentLower, "ccs ") {
+				return "claude"
+			}
+			if strings.Contains(contentLower, "gemini") {
+				return "gemini"
+			}
+		}
+	}
+
+	return "shell"
 }
 
 // getLockFilePath returns the path to the lock file for a profile
