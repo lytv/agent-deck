@@ -597,6 +597,33 @@ pool_all = true
 
 Restart Agent Deck. All sessions now share MCP processes via Unix sockets. Memory usage drops 85-90% for MCP-related processes.
 
+### Why doesn't my shell alias work with CLI?
+
+**Shell aliases don't work in non-interactive shells** (like tmux sessions spawned by Agent Deck).
+
+If you have an alias like:
+```bash
+alias yr='ANTHROPIC_API_KEY="..." claude --dangerously-skip-permissions'
+```
+
+And try `agent-deck add -c yr .`, the session will exit immediately because `yr` is not found.
+
+**Solution: Convert your alias to an executable script:**
+
+```bash
+# Create script
+cat > ~/.local/bin/yr << 'EOF'
+#!/bin/bash
+export ANTHROPIC_API_KEY="your-key"
+export ANTHROPIC_MODEL="your-model"
+exec claude --dangerously-skip-permissions "$@"
+EOF
+
+chmod +x ~/.local/bin/yr
+```
+
+Make sure `~/.local/bin` is in your PATH. Now `agent-deck add -c yr .` will work correctly.
+
 ### What if a session crashes?
 
 tmux sessions persist even if Agent Deck closes. If a session crashes:
