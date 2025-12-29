@@ -209,7 +209,20 @@ func (d *NewDialog) updateFocus() {
 		d.pathInput.Focus()
 	case 2:
 		// Command selection (no text input focus needed for presets)
+	case 3:
+		// Custom command input (only visible when shell is selected)
+		d.commandInput.Focus()
 	}
+}
+
+// maxFocusIndex returns the maximum focus index based on current state
+func (d *NewDialog) maxFocusIndex() int {
+	if d.commandCursor == 0 {
+		// Shell selected: Name(0), Path(1), Command(2), Custom(3)
+		return 3
+	}
+	// Tool selected: Name(0), Path(1), Command(2)
+	return 2
 }
 
 // Update handles key messages
@@ -230,8 +243,8 @@ func (d *NewDialog) Update(msg tea.Msg) (*NewDialog, tea.Cmd) {
 					d.pathInput.SetValue(d.pathSuggestions[d.pathSuggestionCursor])
 				}
 			}
-			// Move to next field
-			d.focusIndex = (d.focusIndex + 1) % 3
+			// Move to next field (cycle based on max focus index)
+			d.focusIndex = (d.focusIndex + 1) % (d.maxFocusIndex() + 1)
 			d.updateFocus()
 			return d, cmd
 
@@ -254,14 +267,14 @@ func (d *NewDialog) Update(msg tea.Msg) (*NewDialog, tea.Cmd) {
 
 		case "down":
 			// Down always navigates fields
-			d.focusIndex = (d.focusIndex + 1) % 3
+			d.focusIndex = (d.focusIndex + 1) % (d.maxFocusIndex() + 1)
 			d.updateFocus()
 			return d, nil
 
 		case "shift+tab", "up":
 			d.focusIndex--
 			if d.focusIndex < 0 {
-				d.focusIndex = 2
+				d.focusIndex = d.maxFocusIndex()
 			}
 			d.updateFocus()
 			return d, nil
@@ -299,6 +312,8 @@ func (d *NewDialog) Update(msg tea.Msg) (*NewDialog, tea.Cmd) {
 		d.nameInput, cmd = d.nameInput.Update(msg)
 	case 1:
 		d.pathInput, cmd = d.pathInput.Update(msg)
+	case 3:
+		d.commandInput, cmd = d.commandInput.Update(msg)
 	}
 
 	return d, cmd
