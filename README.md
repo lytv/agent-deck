@@ -270,9 +270,12 @@ https://github.com/user-attachments/assets/d8056955-c147-451a-b2f6-fad34bce8a15
 ```bash
 agent-deck                    # Launch TUI
 agent-deck add .              # Add current directory as session
-agent-deck add . -c claude    # Add with Claude Code
+agent-deck add . -c claude    # Add with Claude Code (auto-starts)
+agent-deck add . -c yr        # Add with custom wrapper script
 agent-deck list               # List all sessions
 ```
+
+> **Note:** When using `-c`, the session auto-starts immediately. Multiple sessions with the same path are allowed if they have different titles.
 
 ### Keyboard Shortcuts
 
@@ -300,7 +303,8 @@ Agent Deck provides a full CLI for automation and scripting. All commands suppor
 
 ```bash
 agent-deck                              # Launch TUI
-agent-deck add . -c claude              # Add session with Claude
+agent-deck add . -c claude              # Add session with Claude (auto-starts)
+agent-deck add -t "Api" -c claude .     # Multiple sessions on same path (different titles)
 agent-deck list --json                  # List sessions as JSON
 agent-deck status                       # Quick status overview
 agent-deck session attach my-project    # Attach to session
